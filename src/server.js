@@ -1,28 +1,37 @@
 import express from "express";
+import { MongoClient } from "mongodb";
 
 const app = express();
-app.use(express.json());
 const port = 8000;
+app.use(express.json());
 
-let articleinfo = [
-	{
-		name: "learn-react",
-		upvotes: 0,
-		comments: [],
-	},
-	{
-		name: "learn-node",
-		upvotes: 0,
-		comments: [],
-	},
-	{
-		name: "mongodb",
-		upvotes: 0,
-		comments: [],
-	},
-];
+// Endpoint for front end to query article information
+app.get("/api/articles/:name", async (req, res) => {
+	// Query MongoDB using the ":name" URL parameter
+	const { name } = req.params;
 
-// TODO: MongoDB does not print out the data after typing ```$ db.articles.find()```
+	// Connect Mongo client to the MongoDB server
+	const client = new MongoClient("mongodb://127.0.0.1:27017");
+	await client.connect();
+
+	// Load the 'react-blog-db' database from MongoDB
+	const db = client.db("react-blog-db");
+
+	// Fetch the first document that matches the filter (documents that contains the name of the article)
+	const article = await db.collection("articles").findOne({ name });
+
+	// If the article exists
+	if (article) {
+		// Send a JSON response to the client
+		res.json(article);
+	}
+	// If the article doesn't exist
+	else {
+		// Send the 404 HTTP status code
+		// res.sendStatus(404);
+		res.status(404).send("404: Article not found!");
+	}
+});
 
 // Upvote endpoint
 app.put("/api/articles/:name/upvote", (req, res) => {
