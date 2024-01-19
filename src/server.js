@@ -4,7 +4,7 @@ const app = express();
 app.use(express.json());
 const port = 8000;
 
-let articleInfo = [
+let articleinfo = [
 	{
 		name: "learn-react",
 		upvotes: 0,
