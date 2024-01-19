@@ -22,6 +22,8 @@ let articleinfo = [
 	},
 ];
 
+// TODO: MongoDB does not print out the data after typing ```$ db.articles.find()```
+
 // Upvote endpoint
 app.put("/api/articles/:name/upvote", (req, res) => {
 	const { name } = req.params;
