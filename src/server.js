@@ -1,5 +1,5 @@
 import express from "express";
-import { MongoClient } from "mongodb";
+import { db, connectToDb } from "./db.js";
 
 const app = express();
 const port = 8000;
@@ -9,13 +9,6 @@ app.use(express.json());
 app.get("/api/articles/:name", async (req, res) => {
 	// Query MongoDB using the ":name" URL parameter
 	const { name } = req.params;
-
-	// Connect Mongo client to the MongoDB server
-	const client = new MongoClient("mongodb://127.0.0.1:27017");
-	await client.connect();
-
-	// Load the 'react-blog-db' database from MongoDB
-	const db = client.db("react-blog-db");
 
 	// Fetch the first document that matches the filter (documents that contains the name of the article)
 	const article = await db.collection("articles").findOne({ name });
@@ -35,10 +28,6 @@ app.get("/api/articles/:name", async (req, res) => {
 // Upvote endpoint
 app.put("/api/articles/:name/upvote", async (req, res) => {
 	const { name } = req.params;
-	const client = new MongoClient("mongodb://127.0.0.1:27017");
-	await client.connect();
-
-	const db = client.db("react-blog-db");
 
 	await db.collection("articles").updateOne(
 		{ name },
@@ -53,7 +42,6 @@ app.put("/api/articles/:name/upvote", async (req, res) => {
 	const article = await db.collection("articles").findOne({ name });
 
 	if (article) {
-		article.upvotes += 1;
 		res.send(`The ${name} article now has ${article.upvotes} upvote(s)!!!`);
 	} else {
 		res.send("That article doesn't exist!");
@@ -61,20 +49,36 @@ app.put("/api/articles/:name/upvote", async (req, res) => {
 });
 
 // Comment endpoint
-app.post("/api/articles/:name/comments", (req, res) => {
-	const { postedBy, text } = req.body;
+app.post("/api/articles/:name/comments", async (req, res) => {
 	const { name } = req.params;
+	const { postedBy, text } = req.body;
 
-	const article = articleInfo.find((a) => a.name === name);
+	// Push the new comment into the articles collection with the given "postedBy" and "text" values
+	await db.collection("articles").updateOne(
+		{ name },
+		{
+			$push: {
+				comments: {
+					postedBy,
+					text,
+				},
+			},
+		}
+	);
+
+	// Load the updated article
+	const article = await db.collection("articles").findOne({ name });
 
 	if (article) {
-		article.comments.push({ postedBy, text });
 		res.send(article.comments);
 	} else {
 		res.send("That article doesn't exist!!");
 	}
 });
 
-app.listen(port, () => {
-	console.log(`Server is listening on port ${port}`);
+connectToDb(() => {
+	console.log("Successfully connected to database!");
+	app.listen(port, () => {
+		console.log(`Server is listening on port ${port}`);
+	});
 });
